@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+src/finance_job_archive.egg-info/PKG-INFO
+src/finance_job_archive.egg-info/SOURCES.txt
+src/finance_job_archive.egg-info/dependency_links.txt
+src/finance_job_archive.egg-info/requires.txt
+src/finance_job_archive.egg-info/top_level.txt
+src/job_archive/__init__.py
+src/job_archive/app.py
+src/job_archive/classify.py
+src/job_archive/collect.py
+src/job_archive/database.py
+src/job_archive/kofia.py
+tests/test_classify.py
+tests/test_database.py
+tests/test_kofia.py

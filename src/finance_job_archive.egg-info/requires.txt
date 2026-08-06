@@ -1,0 +1,5 @@
+beautifulsoup4>=4.12
+pandas>=2.0
+requests>=2.31
+starlette<1,>=0.47.2
+streamlit>=1.35
