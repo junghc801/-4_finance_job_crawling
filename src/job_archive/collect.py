@@ -2,6 +2,8 @@ import argparse
 import hashlib
 import re
 from pathlib import Path
+from tqdm import tqdm
+import time
 
 from job_archive.classify import classify_posting, extract_deadline
 from job_archive.database import begin_run, connect, finish_run, upsert_posting
@@ -16,10 +18,12 @@ def company_from_title(title: str, body_text: str) -> str | None:
             r"([가-힣A-Za-z0-9㈜·&]+(?:증권|은행|투자자문|자산운용|자산평가|준비법인|자금중개|채권중개|투자일임|부동산신탁|선물|펀드서비스|투자자문|파트너스|에셋운용|제로인))",
             title
             )
+    #제목에 없으면 본문에서 추출
     if not match:
         match = re.search(r"([가-힣A-Za-z0-9㈜·&]+(?:증권|은행|투자자문|자산운용|자산평가|준비법인|자금중개|채권중개|투자일임|부동산신탁|선물|펀드서비스|투자자문|파트너스|에셋운용|제로인))",
                                     body_text)
-    return match.group(1).strip()
+    return match.group(1).strip() if match else None
+
 
 
 def content_hash(title: str, body_text: str) -> str:
@@ -34,7 +38,8 @@ def collect(pages: int, db_path: Path, delay: float) -> dict[str, int]:
     counts = {"pages": 0, "seen": 0, "created": 0, "updated": 0}
 
     try:
-        for page in range(1, pages + 1):
+        for page in tqdm(range(1, pages + 1), desc="수집 중"):
+        # for page in tqdm(range(1, pages + 1)):
             _, listings = client.get_list(page)
             counts["pages"] += 1
             if not listings:
