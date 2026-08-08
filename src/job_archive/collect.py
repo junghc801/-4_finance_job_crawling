@@ -39,7 +39,6 @@ def collect(pages: int, db_path: Path, delay: float) -> dict[str, int]:
 
     try:
         for page in tqdm(range(1, pages + 1), desc="수집 중"):
-        # for page in tqdm(range(1, pages + 1)):
             _, listings = client.get_list(page)
             counts["pages"] += 1
             if not listings:

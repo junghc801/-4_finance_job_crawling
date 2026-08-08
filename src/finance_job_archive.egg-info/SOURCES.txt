@@ -10,7 +10,10 @@ src/job_archive/app.py
 src/job_archive/classify.py
 src/job_archive/collect.py
 src/job_archive/database.py
+src/job_archive/export_mysql.py
 src/job_archive/kofia.py
+src/job_archive/python_test.py
 tests/test_classify.py
 tests/test_database.py
+tests/test_export_mysql.py
 tests/test_kofia.py
