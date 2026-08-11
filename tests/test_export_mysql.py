@@ -1,6 +1,6 @@
 import sqlite3
 
-from job_archive.export_mysql import build_upsert_sql, copy_table
+from job_archive.export_mysql import TABLE_COLUMNS, build_upsert_sql, copy_table
 
 
 class FakeMySQLCursor:
@@ -42,3 +42,10 @@ def test_copy_table_uses_batches() -> None:
     assert [len(rows) for _, rows in target.calls] == [2, 1]
     source.close()
 
+
+def test_mysql_postings_include_category_columns() -> None:
+    columns = TABLE_COLUMNS["postings"]
+
+    assert "company_category" in columns
+    assert "job_category_1" in columns
+    assert "job_category_2" in columns

@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS postings (
     external_id         TEXT NOT NULL,
     source_url          TEXT NOT NULL,
     company             TEXT,
+    company_category    TEXT NOT NULL DEFAULT 'other',
     title               TEXT NOT NULL,
     body_text           TEXT,
     posted_at           TEXT,
@@ -14,6 +15,8 @@ CREATE TABLE IF NOT EXISTS postings (
     employment_type     TEXT,
     classification_note TEXT,
     manual_audience     TEXT,
+    job_category_1      TEXT NOT NULL DEFAULT 'other',
+    job_category_2      TEXT,
     attachments_json    TEXT NOT NULL DEFAULT '[]',
     first_seen_at       TEXT NOT NULL,
     last_seen_at        TEXT NOT NULL,
@@ -50,4 +53,3 @@ CREATE TABLE IF NOT EXISTS crawl_runs (
     postings_updated INTEGER NOT NULL DEFAULT 0,
     error_message    TEXT
 );
-

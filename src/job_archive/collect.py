@@ -5,7 +5,7 @@ from pathlib import Path
 from tqdm import tqdm
 import time
 
-from job_archive.classify import classify_posting, extract_deadline
+from job_archive.classify import classify_categories, classify_posting, extract_deadline
 from job_archive.database import begin_run, connect, finish_run, upsert_posting
 from job_archive.kofia import KofiaClient
 
@@ -48,11 +48,14 @@ def collect(pages: int, db_path: Path, delay: float) -> dict[str, int]:
                 raw_html, detail = client.get_detail(listing)
                 classification = classify_posting(listing.title, detail.body_text)
                 deadline = extract_deadline(detail.body_text, listing.posted_at)
+                company = company_from_title(listing.title, detail.body_text)
+                categories = classify_categories(company, listing.title, detail.body_text)
                 posting = {
                     "source": "kofia",
                     "external_id": listing.external_id,
                     "source_url": listing.url,
-                    "company": company_from_title(listing.title, detail.body_text),
+                    "company": company,
+                    "company_category": categories.company_category,
                     "title": listing.title,
                     "body_text": detail.body_text,
                     "posted_at": listing.posted_at.isoformat() if listing.posted_at else None,
@@ -60,6 +63,8 @@ def collect(pages: int, db_path: Path, delay: float) -> dict[str, int]:
                     "audience": classification.audience,
                     "employment_type": classification.employment_type,
                     "classification_note": classification.note,
+                    "job_category_1": categories.job_category_1,
+                    "job_category_2": categories.job_category_2,
                     "attachments": detail.attachments,
                     "content_hash": content_hash(listing.title, detail.body_text),
                 }
@@ -114,4 +119,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

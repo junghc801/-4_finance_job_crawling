@@ -7,16 +7,19 @@ import sqlite3
 from collections.abc import Sequence
 from pathlib import Path
 
+from job_archive.database import connect as connect_sqlite
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SQLITE = PROJECT_ROOT / "data" / "jobs.sqlite3"
 
 TABLE_COLUMNS = {
     "postings": (
-        "id", "source", "external_id", "source_url", "company", "title",
-        "body_text", "posted_at", "deadline_at", "audience", "employment_type",
-        "classification_note", "manual_audience", "attachments_json",
-        "first_seen_at", "last_seen_at", "last_changed_at", "content_hash",
+        "id", "source", "external_id", "source_url", "company", "company_category",
+        "title", "body_text", "posted_at", "deadline_at", "audience",
+        "employment_type", "classification_note", "manual_audience",
+        "job_category_1", "job_category_2", "attachments_json", "first_seen_at",
+        "last_seen_at", "last_changed_at", "content_hash",
     ),
     "posting_snapshots": (
         "id", "posting_id", "captured_at", "content_hash", "title", "body_text",
@@ -36,6 +39,7 @@ MYSQL_SCHEMA = (
         external_id VARCHAR(191) NOT NULL,
         source_url TEXT NOT NULL,
         company VARCHAR(255),
+        company_category VARCHAR(32) NOT NULL DEFAULT 'other',
         title TEXT NOT NULL,
         body_text LONGTEXT,
         posted_at VARCHAR(10),
@@ -44,6 +48,8 @@ MYSQL_SCHEMA = (
         employment_type VARCHAR(32),
         classification_note TEXT,
         manual_audience VARCHAR(32),
+        job_category_1 VARCHAR(32) NOT NULL DEFAULT 'other',
+        job_category_2 VARCHAR(32),
         attachments_json LONGTEXT NOT NULL,
         first_seen_at VARCHAR(40) NOT NULL,
         last_seen_at VARCHAR(40) NOT NULL,
@@ -84,6 +90,25 @@ MYSQL_SCHEMA = (
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
     """,
 )
+
+MYSQL_POSTINGS_MIGRATIONS = {
+    "company_category": "VARCHAR(32) NOT NULL DEFAULT 'other'",
+    "job_category_1": "VARCHAR(32) NOT NULL DEFAULT 'other'",
+    "job_category_2": "VARCHAR(32)",
+}
+
+
+def ensure_mysql_schema(mysql_cursor) -> None:
+    for statement in MYSQL_SCHEMA:
+        mysql_cursor.execute(statement)
+
+    mysql_cursor.execute("SHOW COLUMNS FROM `postings`")
+    existing = {row[0] for row in mysql_cursor.fetchall()}
+    for column, definition in MYSQL_POSTINGS_MIGRATIONS.items():
+        if column not in existing:
+            mysql_cursor.execute(
+                f"ALTER TABLE `postings` ADD COLUMN `{column}` {definition}"
+            )
 
 
 def build_upsert_sql(table: str, columns: Sequence[str]) -> str:
@@ -131,8 +156,7 @@ def copy_to_mysql(
     except ImportError as error:
         raise RuntimeError("PyMySQL이 없습니다. 먼저 pip install -r requirements.txt를 실행하세요.") from error
 
-    sqlite_connection = sqlite3.connect(sqlite_path)
-    sqlite_connection.row_factory = sqlite3.Row
+    sqlite_connection = connect_sqlite(sqlite_path)
     mysql_connection = pymysql.connect(
         **mysql_config,
         charset="utf8mb4",
@@ -145,8 +169,7 @@ def copy_to_mysql(
     counts: dict[str, int] = {}
     try:
         with mysql_connection.cursor() as mysql_cursor:
-            for statement in MYSQL_SCHEMA:
-                mysql_cursor.execute(statement)
+            ensure_mysql_schema(mysql_cursor)
             for table in TABLE_COLUMNS:
                 counts[table] = copy_table(
                     sqlite_connection, mysql_cursor, table, batch_size
@@ -200,4 +223,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

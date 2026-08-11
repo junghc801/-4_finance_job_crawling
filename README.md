@@ -11,7 +11,8 @@ MySQL로 복사할 수 있습니다.
 - 최초 발견·최근 확인 시각 저장
 - 본문이 바뀐 경우에만 수정 스냅샷 저장
 - 규칙 기반 신입·인턴·경력 분류
-- 키워드·회사·지원 대상별 검색
+- 회사 종류 1개와 직무 종류 최대 2개 자동 분류
+- 키워드·회사·회사 종류·직무 종류·지원 대상별 검색
 - SQLite의 공고·수정 이력·수집 실행 기록을 MySQL로 복사
 
 삭제 여부의 자동 판정과 첨부파일 다운로드는 아직 포함되지 않았습니다.
@@ -35,6 +36,26 @@ python -m venv .venv
 
 기본 데이터베이스 위치는 `data/jobs.sqlite3`입니다. 수집 대상 사이트의 이용약관과
 robots.txt를 확인해야 합니다.
+
+### 회사·직무 카테고리
+
+회사 종류는 공고마다 하나를 저장합니다.
+
+- 증권사, 자산운용사, 투자자문·일임, 은행, 보험사
+- 신탁·부동산금융, 선물·중개, 평가·펀드서비스, 핀테크, 기타
+
+직무 종류는 관련도 순서대로 최대 두 개를 `job_category_1`, `job_category_2`에
+저장합니다. 제목에서 발견한 표현에는 본문보다 높은 가중치를 적용합니다.
+
+- 퀀트·데이터, 리서치, 자산운용, 트레이딩, 리스크관리
+- IB·기업금융, 영업·마케팅, 준법·법무, 운용지원·백오피스
+- IT, 회계·재무, 경영지원, 기타
+
+기존 SQLite 공고 전체를 새 기준으로 다시 분류하려면 다음 명령을 실행합니다.
+
+```powershell
+& ".\.venv\Scripts\python.exe" -m job_archive.reclassify
+```
 
 ## 검색 화면
 
@@ -75,9 +96,10 @@ $env:MYSQL_PASSWORD = "실제 비밀번호"
 `.env` 파일을 자동으로 읽지 않으므로 값을 PowerShell 환경변수로 설정해야 합니다.
 
 기본 SQLite 경로는 `data/jobs.sqlite3`이며 `--sqlite`로 바꿀 수 있습니다. MySQL에는
-`postings`, `posting_snapshots`, `crawl_runs` 테이블이 자동 생성됩니다. 복사 명령은
-한 트랜잭션으로 실행되고, 같은 `id`가 있으면 최신 SQLite 값으로 갱신합니다. MySQL에만
-존재하는 행은 삭제하지 않습니다.
+`postings`, `posting_snapshots`, `crawl_runs` 테이블이 자동 생성됩니다. 회사·직무
+카테고리 열도 함께 복사되며, 기존 MySQL `postings` 테이블에는 누락된 카테고리 열을
+자동 추가합니다. 복사 명령은 한 트랜잭션으로 실행되고, 같은 `id`가 있으면 최신
+SQLite 값으로 갱신합니다. MySQL에만 존재하는 행은 삭제하지 않습니다.
 
 사용 가능한 전체 옵션은 다음과 같이 확인합니다.
 
@@ -101,11 +123,15 @@ MySQL 관련 테스트는 실제 서버에 접속하지 않고 SQL 생성과 배
 - `last_changed_at`: 제목 또는 본문의 마지막 변경 감지 시각
 - `audience`: 자동 분류 결과
 - `manual_audience`: 사용자가 나중에 정정할 수 있는 분류값
+- `company_category`: 회사 종류 한 개
+- `job_category_1`: 가장 관련성이 높은 직무 종류
+- `job_category_2`: 두 번째 직무 종류, 없으면 `NULL`
 
 ## 주요 파일
 
 - `src/job_archive/collect.py`: 금융투자협회 공고 수집
 - `src/job_archive/app.py`: Streamlit 검색 화면
+- `src/job_archive/reclassify.py`: 기존 SQLite 공고 카테고리 재분류
 - `src/job_archive/export_mysql.py`: SQLite 데이터를 MySQL로 복사
 - `sql/schema.sql`: SQLite 테이블 정의
 - `tests/test_export_mysql.py`: MySQL 복사 로직 테스트

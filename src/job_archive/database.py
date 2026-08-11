@@ -18,7 +18,37 @@ def connect(path: Path) -> sqlite3.Connection:
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     connection.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+    _migrate_posting_categories(connection)
     return connection
+
+
+def _migrate_posting_categories(connection: sqlite3.Connection) -> None:
+    existing = {
+        row["name"] for row in connection.execute("PRAGMA table_info(postings)")
+    }
+    migrations = {
+        "company_category": "TEXT NOT NULL DEFAULT 'other'",
+        "job_category_1": "TEXT NOT NULL DEFAULT 'other'",
+        "job_category_2": "TEXT",
+    }
+    for column, definition in migrations.items():
+        if column not in existing:
+            connection.execute(
+                f'ALTER TABLE postings ADD COLUMN "{column}" {definition}'
+            )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_postings_company_category "
+        "ON postings(company_category)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_postings_job_category_1 "
+        "ON postings(job_category_1)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_postings_job_category_2 "
+        "ON postings(job_category_2)"
+    )
+    connection.commit()
 
 
 def begin_run(connection: sqlite3.Connection, source: str) -> int:
@@ -58,6 +88,7 @@ def upsert_posting(connection: sqlite3.Connection, posting: dict, raw_html: str)
     values = (
         posting["source_url"],
         posting.get("company"),
+        posting.get("company_category", "other"),
         posting["title"],
         posting.get("body_text"),
         posting.get("posted_at"),
@@ -65,6 +96,8 @@ def upsert_posting(connection: sqlite3.Connection, posting: dict, raw_html: str)
         posting["audience"],
         posting.get("employment_type"),
         posting.get("classification_note"),
+        posting.get("job_category_1", "other"),
+        posting.get("job_category_2"),
         json.dumps(posting.get("attachments", []), ensure_ascii=False),
         posting["content_hash"],
     )
@@ -73,11 +106,12 @@ def upsert_posting(connection: sqlite3.Connection, posting: dict, raw_html: str)
         cursor = connection.execute(
             """
             INSERT INTO postings (
-                source, external_id, source_url, company, title, body_text,
-                posted_at, deadline_at, audience, employment_type,
-                classification_note, attachments_json, first_seen_at,
-                last_seen_at, last_changed_at, content_hash
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                source, external_id, source_url, company, company_category,
+                title, body_text, posted_at, deadline_at, audience, employment_type,
+                classification_note, job_category_1, job_category_2,
+                attachments_json, first_seen_at, last_seen_at, last_changed_at,
+                content_hash
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 posting["source"],
@@ -93,7 +127,24 @@ def upsert_posting(connection: sqlite3.Connection, posting: dict, raw_html: str)
         result = "created"
     elif existing["content_hash"] == posting["content_hash"]:
         connection.execute(
-            "UPDATE postings SET last_seen_at = ? WHERE id = ?", (now, existing["id"])
+            """
+            UPDATE postings SET
+                company = ?, company_category = ?, audience = ?,
+                employment_type = ?, classification_note = ?,
+                job_category_1 = ?, job_category_2 = ?, last_seen_at = ?
+            WHERE id = ?
+            """,
+            (
+                posting.get("company"),
+                posting.get("company_category", "other"),
+                posting["audience"],
+                posting.get("employment_type"),
+                posting.get("classification_note"),
+                posting.get("job_category_1", "other"),
+                posting.get("job_category_2"),
+                now,
+                existing["id"],
+            ),
         )
         connection.commit()
         return "unchanged"
@@ -102,9 +153,10 @@ def upsert_posting(connection: sqlite3.Connection, posting: dict, raw_html: str)
         connection.execute(
             """
             UPDATE postings SET
-                source_url = ?, company = ?, title = ?, body_text = ?,
+                source_url = ?, company = ?, company_category = ?, title = ?, body_text = ?,
                 posted_at = ?, deadline_at = ?, audience = ?, employment_type = ?,
-                classification_note = ?, attachments_json = ?, content_hash = ?,
+                classification_note = ?, job_category_1 = ?, job_category_2 = ?,
+                attachments_json = ?, content_hash = ?,
                 last_seen_at = ?, last_changed_at = ?
             WHERE id = ?
             """,
@@ -129,4 +181,3 @@ def upsert_posting(connection: sqlite3.Connection, posting: dict, raw_html: str)
     )
     connection.commit()
     return result
-
