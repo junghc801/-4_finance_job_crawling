@@ -143,7 +143,7 @@ st.write(
 job_labels = [
     JOB_CATEGORY_LABELS.get(category, category)
     for category in (selected.job_category_1, selected.job_category_2)
-    if category
+    if pd.notna(category) and str(category).strip()
 ]
 st.write(f"직무 종류: {', '.join(job_labels)}")
 st.write(f"게시일: {selected.posted_at or '확인 필요'} / 마감일: {selected.deadline_at or '확인 필요'}")

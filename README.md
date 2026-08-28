@@ -23,7 +23,8 @@ PowerShell에서 프로젝트 폴더로 이동한 뒤 실행합니다.
 
 ```powershell
 python -m venv .venv
-& ".\.venv\Scripts\python.exe" -m pip install -r requirements.txt
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
 ## 수집
@@ -31,7 +32,7 @@ python -m venv .venv
 먼저 적은 페이지로 시험합니다.
 
 ```powershell
-& ".\.venv\Scripts\python.exe" -m job_archive.collect --pages 2 --delay 1.5
+python -m job_archive.collect --pages 2 --delay 1.5
 ```
 
 기본 데이터베이스 위치는 `data/jobs.sqlite3`입니다. 수집 대상 사이트의 이용약관과
@@ -54,13 +55,13 @@ robots.txt를 확인해야 합니다.
 기존 SQLite 공고 전체를 새 기준으로 다시 분류하려면 다음 명령을 실행합니다.
 
 ```powershell
-& ".\.venv\Scripts\python.exe" -m job_archive.reclassify
+python -m job_archive.reclassify
 ```
 
 ## 검색 화면
 
 ```powershell
-& ".\.venv\Scripts\python.exe" -m streamlit run src\job_archive\app.py
+streamlit run src\job_archive\app.py
 ```
 
 ## MySQL로 복사
@@ -82,7 +83,7 @@ $env:MYSQL_PORT = "3306"
 $env:MYSQL_USER = "root"
 $env:MYSQL_DATABASE = "finance_jobs"
 
-& ".\.venv\Scripts\python.exe" -m job_archive.export_mysql
+python -m job_archive.export_mysql
 ```
 
 `MYSQL_PASSWORD`를 설정하지 않으면 실행할 때 비밀번호를 입력받습니다. 환경변수로
@@ -104,13 +105,13 @@ SQLite 값으로 갱신합니다. MySQL에만 존재하는 행은 삭제하지 �
 사용 가능한 전체 옵션은 다음과 같이 확인합니다.
 
 ```powershell
-& ".\.venv\Scripts\python.exe" -m job_archive.export_mysql --help
+python -m job_archive.export_mysql --help
 ```
 
 ## 테스트
 
 ```powershell
-& ".\.venv\Scripts\python.exe" -m pytest
+pytest
 ```
 
 MySQL 관련 테스트는 실제 서버에 접속하지 않고 SQL 생성과 배치 복사 동작을 검사합니다.
