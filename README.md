@@ -75,26 +75,22 @@ CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 ```
 
-PowerShell에서 접속 정보를 환경변수로 지정하고 복사 명령을 실행합니다.
+프로젝트 루트의 `.env`에 접속 정보를 입력하면 자동으로 읽습니다.
+
+```dotenv
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=실제_비밀번호
+MYSQL_DATABASE=finance_jobs
+```
+
+이후 아래 명령만 실행하면 됩니다. 터미널에서 직접 설정한 동일한 이름의 환경변수는
+`.env` 값보다 우선합니다.
 
 ```powershell
-$env:MYSQL_HOST = "127.0.0.1"
-$env:MYSQL_PORT = "3306"
-$env:MYSQL_USER = "root"
-$env:MYSQL_DATABASE = "finance_jobs"
-
 python -m job_archive.export_mysql
 ```
-
-`MYSQL_PASSWORD`를 설정하지 않으면 실행할 때 비밀번호를 입력받습니다. 환경변수로
-지정하려면 다음 명령을 추가합니다. 실제 비밀번호를 저장소 파일에 기록하지 마세요.
-
-```powershell
-$env:MYSQL_PASSWORD = "실제 비밀번호"
-```
-
-저장소의 `.env.example`에는 필요한 변수 이름만 정리되어 있습니다. 이 프로젝트는
-`.env` 파일을 자동으로 읽지 않으므로 값을 PowerShell 환경변수로 설정해야 합니다.
 
 기본 SQLite 경로는 `data/jobs.sqlite3`이며 `--sqlite`로 바꿀 수 있습니다. MySQL에는
 `postings`, `posting_snapshots`, `crawl_runs` 테이블이 자동 생성됩니다. 회사·직무

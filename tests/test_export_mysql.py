@@ -1,6 +1,7 @@
+import os
 import sqlite3
 
-from job_archive.export_mysql import TABLE_COLUMNS, build_upsert_sql, copy_table
+from job_archive.export_mysql import TABLE_COLUMNS, build_upsert_sql, copy_table, load_dotenv
 
 
 class FakeMySQLCursor:
@@ -49,3 +50,15 @@ def test_mysql_postings_include_category_columns() -> None:
     assert "company_category" in columns
     assert "job_category_1" in columns
     assert "job_category_2" in columns
+
+
+def test_load_dotenv_sets_missing_values_without_overwriting(tmp_path, monkeypatch) -> None:
+    dotenv_path = tmp_path / ".env"
+    dotenv_path.write_text("MYSQL_HOST=from-file\nMYSQL_USER='archive'\n", encoding="utf-8")
+    monkeypatch.delenv("MYSQL_HOST", raising=False)
+    monkeypatch.setenv("MYSQL_USER", "from-shell")
+
+    load_dotenv(dotenv_path)
+
+    assert os.environ["MYSQL_HOST"] == "from-file"
+    assert os.environ["MYSQL_USER"] == "from-shell"

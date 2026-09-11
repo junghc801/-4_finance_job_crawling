@@ -12,6 +12,7 @@ from job_archive.database import connect as connect_sqlite
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SQLITE = PROJECT_ROOT / "data" / "jobs.sqlite3"
+DOTENV_PATH = PROJECT_ROOT / ".env"
 
 TABLE_COLUMNS = {
     "postings": (
@@ -96,6 +97,21 @@ MYSQL_POSTINGS_MIGRATIONS = {
     "job_category_1": "VARCHAR(32) NOT NULL DEFAULT 'other'",
     "job_category_2": "VARCHAR(32)",
 }
+
+
+def load_dotenv(path: Path = DOTENV_PATH) -> None:
+    """프로젝트 .env의 값을 아직 설정되지 않은 환경변수에만 반영한다."""
+    if not path.is_file():
+        return
+
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if key:
+            os.environ.setdefault(key, value.strip().strip('"').strip("'"))
 
 
 def ensure_mysql_schema(mysql_cursor) -> None:
@@ -191,6 +207,7 @@ def _required(value: str | None, name: str) -> str:
 
 
 def main() -> None:
+    load_dotenv()
     parser = argparse.ArgumentParser(description="SQLite 채용공고 데이터를 MySQL로 복사")
     parser.add_argument("--sqlite", type=Path, default=DEFAULT_SQLITE)
     parser.add_argument("--host", default=os.getenv("MYSQL_HOST", "127.0.0.1"))

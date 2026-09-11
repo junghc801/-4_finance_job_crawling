@@ -7,3 +7,4 @@ data/*.sqlite3-*
 data/backups/
 .env
 job_archive/python_test.py
+terminal_order.txt
