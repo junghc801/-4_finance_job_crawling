@@ -5,6 +5,8 @@ __pycache__/
 data/*.sqlite3
 data/*.sqlite3-*
 data/backups/
+data/career/
 .env
 job_archive/python_test.py
 terminal_order.txt
+FOR_REFERENCE_모음집.txt
